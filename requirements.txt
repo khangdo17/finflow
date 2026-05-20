@@ -1,0 +1,43 @@
+# Kafka
+kafka-python==2.0.2
+
+# Spark
+pyspark==3.5.0
+
+# Airflow (install via pip extras, not listed here directly for Docker)
+apache-airflow==2.9.0
+
+# dbt
+dbt-postgres==1.7.4
+
+# Database
+psycopg2-binary==2.9.9
+duckdb==0.9.2
+
+# API
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+
+# Dashboard
+streamlit==1.30.0
+
+# Redis
+redis==5.0.1
+
+# Utilities
+python-dotenv==1.0.1
+loguru==0.7.2
+requests==2.31.0
+
+# Testing
+pytest==7.4.4
+pytest-mock==3.12.0
+
+# Linting
+flake8==7.0.0
+
+# Dashboard charts
+plotly==5.18.0
+pydeck==0.8.0
+numpy==1.26.4

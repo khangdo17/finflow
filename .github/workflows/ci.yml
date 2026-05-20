@@ -1,0 +1,146 @@
+name: FinFlow CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Terraform lint — format check + validate
+  # ---------------------------------------------------------------------------
+  terraform-lint:
+    name: Terraform Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Python lint — flake8 on key packages
+  # ---------------------------------------------------------------------------
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install flake8
+        run: pip install flake8==7.0.0
+
+      - name: Lint batch_layer/dags
+        run: flake8 batch_layer/dags/ --max-line-length=120
+
+      - name: Lint speed_layer
+        run: flake8 speed_layer/ --max-line-length=120
+
+      - name: Lint observability
+        run: flake8 observability/ --max-line-length=120
+
+      - name: Lint serving
+        run: flake8 serving/ --max-line-length=120
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Docker Compose validate — config parse check
+  # ---------------------------------------------------------------------------
+  docker-validate:
+    name: Docker Compose Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f infrastructure/docker-compose.yml config > /dev/null
+
+  # ---------------------------------------------------------------------------
+  # Job 4: dbt compile — verify all models parse without errors
+  # ---------------------------------------------------------------------------
+  dbt-compile:
+    name: dbt Compile
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: finflow
+          POSTGRES_PASSWORD: finflow123
+          POSTGRES_DB: finflow
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt-postgres
+        run: pip install dbt-postgres==1.7.4
+
+      - name: Create dbt profile
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << 'EOF'
+          finflow:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: localhost
+                port: 5433
+                user: finflow
+                password: finflow123
+                dbname: finflow
+                schema: dbt_dev
+                threads: 1
+          EOF
+
+      - name: Create dbt_dev schema
+        run: |
+          PGPASSWORD=finflow123 psql -h localhost -p 5433 -U finflow -d finflow \
+            -c "CREATE SCHEMA IF NOT EXISTS dbt_dev;"
+
+      - name: dbt deps
+        working-directory: batch_layer/dbt/finflow
+        run: dbt deps
+
+      - name: dbt compile
+        working-directory: batch_layer/dbt/finflow
+        run: dbt compile --profiles-dir ~/.dbt

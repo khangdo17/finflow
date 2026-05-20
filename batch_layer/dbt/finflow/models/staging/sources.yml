@@ -1,0 +1,59 @@
+version: 2
+
+sources:
+  - name: finflow_raw
+    database: finflow_db
+    schema: public
+    description: "Raw tables ingested from Kafka by the batch consumer"
+
+    tables:
+      - name: raw_transactions
+        description: "All incoming payment transactions from the Kafka topic"
+        columns:
+          - name: tx_id
+            description: "Unique transaction UUID"
+            tests:
+              - not_null
+              - unique
+
+          - name: user_id
+            description: "Identifier of the transacting user (user_XXXX format)"
+            tests:
+              - not_null
+
+          - name: merchant
+            description: "Merchant name"
+
+          - name: amount
+            description: "Transaction amount in VND"
+            tests:
+              - not_null
+
+          - name: currency
+            description: "Currency code, always VND"
+            tests:
+              - accepted_values:
+                  values: ["VND"]
+
+          - name: country
+            description: "ISO-2 country code where the transaction originated"
+
+          - name: tx_at
+            description: "Timestamp of the transaction (UTC)"
+            tests:
+              - not_null
+
+          - name: device
+            description: "Device type used for the transaction"
+            tests:
+              - accepted_values:
+                  values: ["mobile", "web", "pos"]
+
+          - name: is_fraud
+            description: "Whether the transaction was flagged as fraudulent"
+
+          - name: fraud_reason
+            description: "Rule name that triggered the fraud flag, nullable for clean transactions"
+
+          - name: ingested_at
+            description: "Timestamp when the record was inserted into Postgres"

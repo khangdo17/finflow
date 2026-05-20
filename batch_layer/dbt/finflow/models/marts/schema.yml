@@ -1,0 +1,103 @@
+version: 2
+
+models:
+  - name: mart_revenue_daily
+    description: "Daily revenue aggregated by merchant and country. One row per (date, merchant, country_code)."
+    columns:
+      - name: date
+        description: "Transaction date"
+        tests:
+          - not_null
+
+      - name: merchant
+        description: "Merchant name"
+        tests:
+          - not_null
+
+      - name: category
+        description: "Merchant category (transport, ecommerce, grocery, fintech, food, other)"
+        tests:
+          - not_null
+
+      - name: country_code
+        description: "ISO-2 country code"
+        tests:
+          - not_null
+
+      - name: tx_count
+        description: "Total number of transactions"
+        tests:
+          - not_null
+
+      - name: unique_users
+        description: "Number of distinct users"
+        tests:
+          - not_null
+
+      - name: total_revenue_vnd
+        description: "Sum of all transaction amounts in VND"
+        tests:
+          - not_null
+
+      - name: avg_tx_value_vnd
+        description: "Average transaction value in VND"
+
+      - name: fraud_tx_count
+        description: "Number of fraudulent transactions"
+        tests:
+          - not_null
+
+      - name: fraud_rate_pct
+        description: "Fraud rate as a percentage (0–100)"
+
+      - name: fraud_amount_vnd
+        description: "Total amount involved in fraudulent transactions"
+
+  - name: mart_fraud_report
+    description: "Top fraudulent users aggregated across all dates."
+    columns:
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null
+          - unique
+
+      - name: total_fraud_tx
+        description: "Total number of fraud transactions by this user"
+        tests:
+          - not_null
+
+      - name: total_fraud_amount
+        description: "Total VND amount in fraud transactions"
+
+      - name: last_fraud_at
+        description: "Timestamp of the most recent fraud transaction"
+
+      - name: user_fraud_rate_pct
+        description: "Percentage of this user's transactions that were fraudulent"
+
+  - name: stg_transactions
+    description: "Cleaned and cast staging view over raw_transactions."
+    columns:
+      - name: tx_id
+        description: "Unique transaction UUID"
+        tests:
+          - not_null
+          - unique
+
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null
+
+      - name: amount
+        description: "Transaction amount in VND"
+        tests:
+          - not_null
+
+      - name: device
+        description: "Device type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["mobile", "web", "pos"]
