@@ -8,6 +8,8 @@
 
 ## Architecture
 
+![FinFlow System Architecture](System_Architecture.png)
+
 ```
 
                      DATA SOURCE                                 
